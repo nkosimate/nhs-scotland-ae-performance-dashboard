@@ -1,0 +1,4 @@
+# Direct imports from the recovered Power BI visual. Versions not yet runtime-tested.
+pandas
+numpy
+matplotlib

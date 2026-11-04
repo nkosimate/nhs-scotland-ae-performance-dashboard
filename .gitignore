@@ -1,0 +1,45 @@
+# Local and confidential configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+
+# Source data: publish only after explicit review
+/data/
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.parquet
+*.db
+*.sqlite*
+*.zip
+
+# Power BI local files and unreviewed report artifacts
+*.pbix
+*.pbit
+*.pbip
+.pbi/
+*.abf
+*.bak
+~$*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Reviewed release report (public-data content confirmed by owner)
+!NHS_AE_Dashboard_v0.1.pbix

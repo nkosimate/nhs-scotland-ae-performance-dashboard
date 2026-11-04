@@ -1,0 +1,80 @@
+-- Reconciled NHS Scotland A&E measures. Create each separately in Power BI.
+-- Confirmed from history: AE_Activity[Date].
+-- ASSUMED count columns: [Attendances], [Within4Hours]; map to actual model.
+-- Monthly Date values must consistently use month-start or month-end.
+-- Use AE_Activity[Date] directly in slicer, not the automatic date hierarchy.
+-- Separate Calendar-table slicers need Calendar-based filter removal instead.
+
+Total Attendances =
+SUM(AE_Activity[Attendances])
+
+Within 4 Hours =
+SUM(AE_Activity[Within4Hours])
+
+-- Format: 0.0% (underlying ratio 0–1).
+4-Hour Performance % =
+DIVIDE([Within 4 Hours], [Total Attendances])
+
+Over 4 Hours =
+VAR Total = [Total Attendances]
+VAR Within = [Within 4 Hours]
+RETURN
+    IF(ISBLANK(Total) || ISBLANK(Within), BLANK(), Total - Within)
+
+-- Selected latest date, preserving board and department filters.
+Latest 4-Hour Performance % =
+VAR LatestDate =
+    MAXX(ALLSELECTED(AE_Activity[Date]), AE_Activity[Date])
+RETURN
+    IF(
+        ISBLANK(LatestDate), BLANK(),
+        CALCULATE([4-Hour Performance %], AE_Activity[Date] = LatestDate)
+    )
+
+Latest Month Attendances =
+VAR LatestDate =
+    MAXX(ALLSELECTED(AE_Activity[Date]), AE_Activity[Date])
+RETURN
+    IF(
+        ISBLANK(LatestDate), BLANK(),
+        CALCULATE([Total Attendances], AE_Activity[Date] = LatestDate)
+    )
+
+-- Same selected latest month as current KPI; prior year can lie outside slicer.
+-- EOMONTH also handles month-end leap-year comparisons consistently.
+Previous Year 4-Hour Performance % =
+VAR LatestDate =
+    MAXX(ALLSELECTED(AE_Activity[Date]), AE_Activity[Date])
+VAR PreviousDate =
+    IF(
+        LatestDate = EOMONTH(LatestDate, 0),
+        EOMONTH(LatestDate, -12),
+        EDATE(LatestDate, -12)
+    )
+RETURN
+    IF(
+        ISBLANK(LatestDate), BLANK(),
+        CALCULATE(
+            [4-Hour Performance %],
+            REMOVEFILTERS(AE_Activity[Date]),
+            AE_Activity[Date] = PreviousDate
+        )
+    )
+
+-- Numeric percentage points: 0.75 minus 0.70 yields 5.0.
+-- Format: 0.0, NOT Percentage.
+YoY Performance Change =
+VAR CurrentPerformance = [Latest 4-Hour Performance %]
+VAR PreviousPerformance = [Previous Year 4-Hour Performance %]
+RETURN
+    IF(
+        ISBLANK(CurrentPerformance) || ISBLANK(PreviousPerformance),
+        BLANK(),
+        (CurrentPerformance - PreviousPerformance) * 100
+    )
+
+-- Reconstructed display formatting; earlier display expression unavailable.
+YoY Change Display =
+VAR Change = [YoY Performance Change]
+RETURN
+    IF(ISBLANK(Change), BLANK(), FORMAT(Change, "+0.0;-0.0;0.0") & " pp")
